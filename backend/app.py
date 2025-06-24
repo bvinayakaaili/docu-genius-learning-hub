@@ -9,16 +9,13 @@ from openai import OpenAI
 app = Flask(__name__)
 CORS(app)  # Enable CORS for React frontend
 
-# Constants from your original Streamlit code
-OPENROUTER_API_BASE = "https://openrouter.ai/api/v1"
-OPENROUTER_MODEL_NAME = "meta-llama/llama-3.3-70b-instruct:free"
-OPENROUTER_API_KEY = "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"
+# Use OpenAI directly instead of OpenRouter
+# You'll need to set your OpenAI API key as an environment variable
+# or replace this with your actual OpenAI API key
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', 'your-openai-api-key-here')
 
 # Initialize OpenAI client
-client = OpenAI(
-    base_url=OPENROUTER_API_BASE,
-    api_key=OPENROUTER_API_KEY
-)
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 def extract_text_from_uploads(uploaded_files):
     """Extract text from uploaded PDF files using your existing logic"""
@@ -102,7 +99,7 @@ def process_documents():
 
 @app.route('/api/ask-question', methods=['POST'])
 def ask_question():
-    """Answer questions using your existing OpenAI integration"""
+    """Answer questions using OpenAI API"""
     try:
         data = request.json
         question = data.get('question')
@@ -121,7 +118,14 @@ def ask_question():
                 'answer': 'No document text available. Please upload a document first.'
             }), 400
 
-        # Prepare messages for LLM using your existing logic
+        # Check if OpenAI API key is set
+        if OPENAI_API_KEY == 'your-openai-api-key-here':
+            return jsonify({
+                'success': False,
+                'answer': 'OpenAI API key not configured. Please set your OPENAI_API_KEY environment variable or update the backend code with your API key.'
+            }), 400
+
+        # Prepare messages for OpenAI
         messages_for_llm = []
         system_prompt = "You are a helpful assistant. Answer the user's question based on the provided document text and chat history."
         context_prompt = f"Document Text:\n\n{document_text}\n\n"
@@ -139,10 +143,12 @@ def ask_question():
 
         messages_for_llm.append({"role": "user", "content": question})
 
-        # Get response from OpenAI using your existing setup
+        # Get response from OpenAI
         completion = client.chat.completions.create(
-            model=OPENROUTER_MODEL_NAME,
-            messages=messages_for_llm
+            model="gpt-3.5-turbo",  # Using a more reliable and cost-effective model
+            messages=messages_for_llm,
+            max_tokens=1000,
+            temperature=0.7
         )
         answer = completion.choices[0].message.content
 
@@ -152,6 +158,7 @@ def ask_question():
         })
 
     except Exception as e:
+        print(f"Error in ask_question: {str(e)}")
         return jsonify({
             'success': False,
             'answer': f'Error: {str(e)}'
@@ -160,7 +167,7 @@ def ask_question():
 if __name__ == '__main__':
     print("🚀 Starting DocuGenius Backend Server...")
     print("📄 Using PyPDFLoader for document processing")
-    print("🤖 Using OpenRouter API for AI responses")
+    print("🤖 Using OpenAI API for AI responses")
     print("🌐 Server will run on http://localhost:5000")
     print("💡 Make sure to start the React frontend on http://localhost:8080")
     print("\n✅ Available endpoints:")
@@ -168,4 +175,7 @@ if __name__ == '__main__':
     print("   GET  /api/health - Health check")
     print("   POST /api/process-documents - Upload documents")
     print("   POST /api/ask-question - Ask questions")
+    print("\n⚠️  Important: Set your OpenAI API key as an environment variable:")
+    print("   export OPENAI_API_KEY='your-actual-openai-api-key'")
+    print("   Or replace 'your-openai-api-key-here' in the code with your actual key")
     app.run(debug=True, host='0.0.0.0', port=5000)
