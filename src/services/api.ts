@@ -1,5 +1,5 @@
 
-const API_BASE_URL = 'http://localhost:8501/api'; // Your Streamlit backend URL
+const API_BASE_URL = 'http://localhost:5000/api'; // Flask backend URL
 
 export interface DocumentProcessResponse {
   success: boolean;
@@ -35,7 +35,7 @@ export const documentAPI = {
       console.error('Error processing documents:', error);
       return {
         success: false,
-        message: 'Failed to process documents. Please ensure your backend is running.',
+        message: 'Failed to process documents. Please ensure your backend is running on port 5000.',
       };
     }
   },
@@ -63,7 +63,7 @@ export const documentAPI = {
       console.error('Error asking question:', error);
       return {
         success: false,
-        answer: 'Failed to get response. Please ensure your backend is running.',
+        answer: 'Failed to get response. Please ensure your backend is running on port 5000.',
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     }

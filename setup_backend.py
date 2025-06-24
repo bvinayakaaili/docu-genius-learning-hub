@@ -9,7 +9,7 @@ import os
 
 def install_requirements():
     """Install required Python packages"""
-    print("Installing backend requirements...")
+    print("📦 Installing backend requirements...")
     try:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "backend/requirements.txt"])
         print("✅ Backend requirements installed successfully!")
@@ -31,10 +31,12 @@ def main():
     
     if install_requirements():
         print("\n✅ Setup complete!")
-        print("\nNext steps:")
-        print("1. Run the backend: python backend/streamlit_api.py")
-        print("2. In another terminal, run the frontend: npm run dev")
+        print("\n📋 Next steps:")
+        print("1. Start the backend: python backend/app.py")
+        print("2. In another terminal, start the frontend: npm run dev")
         print("3. Open http://localhost:8080 in your browser")
+        print("\n🔧 Backend will run on: http://localhost:5000")
+        print("🌐 Frontend will run on: http://localhost:8080")
     else:
         print("\n❌ Setup failed. Please check the error messages above.")
 
