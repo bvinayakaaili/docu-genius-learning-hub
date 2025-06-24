@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, Send, FileText, MessageCircle, Loader2, Download, Share2, BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { documentAPI } from "@/services/api";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -40,39 +41,34 @@ const ChatPage = () => {
     setIsLoading(true);
 
     try {
-      // Simulate file processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const response = await documentAPI.processDocuments(files);
       
-      // In a real implementation, you would extract text from PDFs here
-      // For now, we'll simulate extracted text
-      const mockExtractedText = `This is extracted text from ${files.map(f => f.name).join(', ')}. 
-      
-      Sample content: This document contains important information about the subject matter. 
-      It includes key concepts, definitions, and explanations that can be used to answer questions.
-      
-      Key topics covered:
-      - Introduction to the subject
-      - Main concepts and principles  
-      - Practical applications
-      - Summary and conclusions`;
-      
-      setDocumentText(mockExtractedText);
-      toast({
-        title: "Documents processed successfully!",
-        description: `Extracted text from ${files.length} file(s). You can now ask questions.`,
-      });
-      
-      // Add a welcome message from the assistant
-      setMessages([{
-        role: 'assistant',
-        content: `Hello! I've successfully processed your document(s): ${files.map(f => f.name).join(', ')}. I'm ready to help you understand the content. What would you like to know?`,
-        timestamp: new Date()
-      }]);
+      if (response.success && response.documentText) {
+        setDocumentText(response.documentText);
+        toast({
+          title: "Documents processed successfully!",
+          description: response.message,
+        });
+        
+        // Add a welcome message from the assistant
+        setMessages([{
+          role: 'assistant',
+          content: `Hello! I've successfully processed your document(s): ${files.map(f => f.name).join(', ')}. I'm ready to help you understand the content. What would you like to know?`,
+          timestamp: new Date()
+        }]);
+        
+      } else {
+        toast({
+          title: "Error processing documents",
+          description: response.message,
+          variant: "destructive",
+        });
+      }
       
     } catch (error) {
       toast({
         title: "Error processing documents",
-        description: "Please try again with valid PDF files.",
+        description: "Please ensure your backend server is running and try again.",
         variant: "destructive",
       });
     } finally {
@@ -99,36 +95,32 @@ const ChatPage = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentMessages = [...messages, userMessage];
     setInputValue("");
     setIsLoading(true);
 
     try {
-      // Simulate AI response
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await documentAPI.askQuestion(inputValue, documentText, currentMessages);
       
-      // Mock AI response based on the question
-      const responses = [
-        "Based on the document you uploaded, I can provide you with relevant information. The content covers several key aspects that relate to your question.",
-        "According to the document, this topic is discussed in detail. Let me break down the main points for you.",
-        "The document contains valuable insights about this subject. Here's what I found most relevant to your question.",
-        "From my analysis of your uploaded document, I can explain this concept and how it connects to the broader themes discussed.",
-        "This is an excellent question! The document provides clear guidance on this topic, and I can help you understand the key principles involved."
-      ];
-      
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-      
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: `${randomResponse}\n\nFor a complete implementation with your existing backend tools (PyPDFLoader, OpenAI client, etc.), this would connect to your Streamlit backend to process the actual documents and generate real AI responses using the same tools you've been successfully using.`,
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
+      if (response.success) {
+        const assistantMessage: Message = {
+          role: 'assistant',
+          content: response.answer,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+      } else {
+        toast({
+          title: "Error getting response",
+          description: response.answer,
+          variant: "destructive",
+        });
+      }
       
     } catch (error) {
       toast({
         title: "Error getting response",
-        description: "Please try again.",
+        description: "Please ensure your backend server is running and try again.",
         variant: "destructive",
       });
     } finally {
@@ -351,7 +343,7 @@ const ChatPage = () => {
                   </div>
                   
                   <p className="text-xs text-gray-500 mt-2">
-                    💡 For full functionality, this interface connects to your existing Streamlit backend with PyPDFLoader and OpenAI tools
+                    💡 Connected to your backend with PyPDFLoader and OpenAI integration
                   </p>
                 </div>
               </CardContent>
