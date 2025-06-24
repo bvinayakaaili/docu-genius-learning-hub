@@ -48,6 +48,24 @@ def extract_text_from_uploads(uploaded_files):
 
     return full_text if full_text else None
 
+@app.route('/')
+def home():
+    """Home route to test if server is running"""
+    return jsonify({
+        'message': 'DocuGenius Backend is running!',
+        'status': 'healthy',
+        'endpoints': [
+            '/api/health',
+            '/api/process-documents',
+            '/api/ask-question'
+        ]
+    })
+
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    return jsonify({'status': 'healthy'})
+
 @app.route('/api/process-documents', methods=['POST'])
 def process_documents():
     """Process uploaded documents and extract text"""
@@ -139,15 +157,15 @@ def ask_question():
             'answer': f'Error: {str(e)}'
         }), 500
 
-@app.route('/api/health', methods=['GET'])
-def health_check():
-    """Health check endpoint"""
-    return jsonify({'status': 'healthy'})
-
 if __name__ == '__main__':
     print("🚀 Starting DocuGenius Backend Server...")
     print("📄 Using PyPDFLoader for document processing")
     print("🤖 Using OpenRouter API for AI responses")
     print("🌐 Server will run on http://localhost:5000")
     print("💡 Make sure to start the React frontend on http://localhost:8080")
+    print("\n✅ Available endpoints:")
+    print("   GET  / - Home page")
+    print("   GET  /api/health - Health check")
+    print("   POST /api/process-documents - Upload documents")
+    print("   POST /api/ask-question - Ask questions")
     app.run(debug=True, host='0.0.0.0', port=5000)
