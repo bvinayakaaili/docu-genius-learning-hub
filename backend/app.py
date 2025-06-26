@@ -9,13 +9,16 @@ from openai import OpenAI
 app = Flask(__name__)
 CORS(app)  # Enable CORS for React frontend
 
-# Use OpenAI directly instead of OpenRouter
-# You'll need to set your OpenAI API key as an environment variable
-# or replace this with your actual OpenAI API key
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', 'your-openai-api-key-here')
+# Configuration matching your Streamlit code
+OPENROUTER_API_BASE = "https://openrouter.ai/api/v1"
+OPENROUTER_MODEL_NAME = "mistralai/mistral-7b-instruct"  # ✅ Switched to a reliable free model
+OPENROUTER_API_KEY = "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"  # 🔐 Your OpenRouter key
 
-# Initialize OpenAI client
-client = OpenAI(api_key=OPENAI_API_KEY)
+# Initialize OpenAI client with OpenRouter
+client = OpenAI(
+    base_url=OPENROUTER_API_BASE,
+    api_key=OPENROUTER_API_KEY
+)
 
 def extract_text_from_uploads(uploaded_files):
     """Extract text from uploaded PDF files using your existing logic"""
@@ -51,6 +54,8 @@ def home():
     return jsonify({
         'message': 'DocuGenius Backend is running!',
         'status': 'healthy',
+        'model': OPENROUTER_MODEL_NAME,
+        'api': 'OpenRouter',
         'endpoints': [
             '/api/health',
             '/api/process-documents',
@@ -61,7 +66,11 @@ def home():
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
-    return jsonify({'status': 'healthy'})
+    return jsonify({
+        'status': 'healthy',
+        'model': OPENROUTER_MODEL_NAME,
+        'api': 'OpenRouter'
+    })
 
 @app.route('/api/process-documents', methods=['POST'])
 def process_documents():
@@ -99,7 +108,7 @@ def process_documents():
 
 @app.route('/api/ask-question', methods=['POST'])
 def ask_question():
-    """Answer questions using OpenAI API"""
+    """Answer questions using OpenRouter API with Mistral model"""
     try:
         data = request.json
         question = data.get('question')
@@ -118,22 +127,13 @@ def ask_question():
                 'answer': 'No document text available. Please upload a document first.'
             }), 400
 
-        # Check if OpenAI API key is set
-        if OPENAI_API_KEY == 'your-openai-api-key-here':
-            return jsonify({
-                'success': False,
-                'answer': 'OpenAI API key not configured. Please set your OPENAI_API_KEY environment variable or update the backend code with your API key.'
-            }), 400
+        # Prepare messages for Mistral model (matching your Streamlit logic)
+        messages_for_llm = [
+            {"role": "system", "content": "You are a helpful assistant. Answer the user's question based on the provided document text and conversation history."},
+            {"role": "system", "content": f"Document Text:\n```\n{document_text}\n```"}
+        ]
 
-        # Prepare messages for OpenAI
-        messages_for_llm = []
-        system_prompt = "You are a helpful assistant. Answer the user's question based on the provided document text and chat history."
-        context_prompt = f"Document Text:\n\n{document_text}\n\n"
-
-        messages_for_llm.append({"role": "system", "content": system_prompt})
-        messages_for_llm.append({"role": "system", "content": context_prompt})
-
-        # Add chat history
+        # Add chat history (excluding system messages)
         for msg in chat_history:
             if msg.get("role") in ["user", "assistant"]:
                 messages_for_llm.append({
@@ -143,12 +143,10 @@ def ask_question():
 
         messages_for_llm.append({"role": "user", "content": question})
 
-        # Get response from OpenAI
+        # Get response from OpenRouter using Mistral model
         completion = client.chat.completions.create(
-            model="gpt-3.5-turbo",  # Using a more reliable and cost-effective model
-            messages=messages_for_llm,
-            max_tokens=1000,
-            temperature=0.7
+            model=OPENROUTER_MODEL_NAME,
+            messages=messages_for_llm
         )
         answer = completion.choices[0].message.content
 
@@ -167,7 +165,7 @@ def ask_question():
 if __name__ == '__main__':
     print("🚀 Starting DocuGenius Backend Server...")
     print("📄 Using PyPDFLoader for document processing")
-    print("🤖 Using OpenAI API for AI responses")
+    print(f"🤖 Using OpenRouter API with {OPENROUTER_MODEL_NAME}")
     print("🌐 Server will run on http://localhost:5000")
     print("💡 Make sure to start the React frontend on http://localhost:8080")
     print("\n✅ Available endpoints:")
@@ -175,7 +173,5 @@ if __name__ == '__main__':
     print("   GET  /api/health - Health check")
     print("   POST /api/process-documents - Upload documents")
     print("   POST /api/ask-question - Ask questions")
-    print("\n⚠️  Important: Set your OpenAI API key as an environment variable:")
-    print("   export OPENAI_API_KEY='your-actual-openai-api-key'")
-    print("   Or replace 'your-openai-api-key-here' in the code with your actual key")
+    print(f"\n🔑 Using OpenRouter API Key: {OPENROUTER_API_KEY[:20]}...")
     app.run(debug=True, host='0.0.0.0', port=5000)
