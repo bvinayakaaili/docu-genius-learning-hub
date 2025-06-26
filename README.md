@@ -150,4 +150,7 @@ If you encounter issues:
 
 ---
 
-Built with ❤️ using your proven Streamlit backend tools in a modern React interface.
+Built with using your proven Streamlit backend tools in a modern React interface.
+## Authors
+. Vinayak Aili
+. Dhanush R M
