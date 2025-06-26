@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +6,7 @@ import { Upload, Send, FileText, MessageCircle, Loader2, Download, Share2, BookO
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { documentAPI } from "@/services/api";
+import VoiceAssistant from "@/components/VoiceAssistant";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -76,8 +76,9 @@ const ChatPage = () => {
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
+  const handleSendMessage = async (question?: string) => {
+    const messageText = question || inputValue.trim();
+    if (!messageText) return;
     
     if (!documentText) {
       toast({
@@ -90,7 +91,7 @@ const ChatPage = () => {
 
     const userMessage: Message = {
       role: 'user',
-      content: inputValue,
+      content: messageText,
       timestamp: new Date()
     };
 
@@ -100,7 +101,7 @@ const ChatPage = () => {
     setIsLoading(true);
 
     try {
-      const response = await documentAPI.askQuestion(inputValue, documentText, currentMessages);
+      const response = await documentAPI.askQuestion(messageText, documentText, currentMessages);
       
       if (response.success) {
         const assistantMessage: Message = {
@@ -109,6 +110,7 @@ const ChatPage = () => {
           timestamp: new Date()
         };
         setMessages(prev => [...prev, assistantMessage]);
+        return response.answer; // Return the response for voice synthesis
       } else {
         toast({
           title: "Error getting response",
@@ -126,6 +128,11 @@ const ChatPage = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleVoiceQuestion = async (question: string) => {
+    const response = await handleSendMessage(question);
+    return response;
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -226,6 +233,16 @@ const ChatPage = () => {
               </CardContent>
             </Card>
 
+            {/* Voice Assistant */}
+            <VoiceAssistant
+              onQuestionAsked={handleVoiceQuestion}
+              onResponseReceived={(response) => {
+                // Voice assistant will automatically speak the response
+                console.log('Voice response:', response);
+              }}
+              isProcessing={isLoading}
+            />
+
             {/* Study Tools */}
             <Card className="shadow-lg border-0">
               <CardHeader>
@@ -256,6 +273,7 @@ const ChatPage = () => {
               </CardHeader>
               <CardContent>
                 <ul className="text-sm text-gray-600 space-y-2">
+                  <li>• Use voice commands for hands-free interaction</li>
                   <li>• Ask specific questions for better answers</li>
                   <li>• Request summaries of key concepts</li>
                   <li>• Ask for examples and explanations</li>
@@ -271,7 +289,7 @@ const ChatPage = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <MessageCircle className="h-5 w-5" />
-                  AI Learning Assistant
+                  AI Learning Assistant with Voice
                 </CardTitle>
               </CardHeader>
               
@@ -281,8 +299,8 @@ const ChatPage = () => {
                   {messages.length === 0 ? (
                     <div className="text-center py-12">
                       <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-700 mb-2">Welcome to DocuGenius!</h3>
-                      <p className="text-gray-500">Upload your documents and start asking questions to begin your enhanced learning journey.</p>
+                      <h3 className="text-lg font-medium text-gray-700 mb-2">Welcome to DocuGenius Voice Assistant!</h3>
+                      <p className="text-gray-500">Upload your documents and start asking questions using text or voice to begin your enhanced learning journey.</p>
                     </div>
                   ) : (
                     messages.map((message, index) => (
@@ -329,12 +347,12 @@ const ChatPage = () => {
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
                       onKeyPress={handleKeyPress}
-                      placeholder="Ask a question about your documents..."
+                      placeholder="Ask a question about your documents or use voice..."
                       className="flex-1"
                       disabled={isLoading}
                     />
                     <Button
-                      onClick={handleSendMessage}
+                      onClick={() => handleSendMessage()}
                       disabled={isLoading || !inputValue.trim()}
                       className="bg-blue-600 hover:bg-blue-700"
                     >
@@ -343,7 +361,7 @@ const ChatPage = () => {
                   </div>
                   
                   <p className="text-xs text-gray-500 mt-2">
-                    💡 Connected to your backend with PyPDFLoader and OpenAI integration
+                    💡 Connected to your backend with voice recognition and synthesis capabilities
                   </p>
                 </div>
               </CardContent>
